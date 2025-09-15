@@ -6,7 +6,7 @@ Simple file explorer application that allows users to browse, search, upload, de
 
 #### Features:
 - Browse files and folders on the server
-- Search for files using wildcards (* and ?)
+- Search for files using wildcards
 - Upload files to the server
 - Delete files from the server
 - Create new folders on the server
