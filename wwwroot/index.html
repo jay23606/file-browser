@@ -1,0 +1,209 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Folder and File Browser</title>
+    <style>
+        #browseResult td{border: 1px solid black }
+        #searchResultsTbl td { border: 1px solid black }
+        #tbl, #hdr, #searchResultsTbl { border-collapse: collapse; width: 100% }
+    </style>
+</head>
+<body>
+    <table id="hdr">
+        <tr>
+            <td style="width:10px">
+                <button id="btnUp" style="margin-right:5px;">⬆️</button>
+            </td>
+            <td>
+                <input id="pathBox" type="text" readonly style="width:100%;" />
+            </td>
+            <td style="width:50px">
+                <input id="searchBox" type="text" placeholder="Search" />
+            </td>
+        </tr>
+    </table>
+    <button style="float:right" id="btnNewFolder">New Folder</button>
+    <table id="tbl">
+        <thead>
+            <tr>
+                <th style="width:40px">Select</th>
+                <th>Name</th>
+                <th>Date Modified</th>
+                <th>Size</th>
+                <th>File Count</th>
+            </tr>
+        </thead>
+        <tbody id="browseResult">
+        </tbody>
+    </table>
+    <button id="btnDelete">Delete Selected</button>
+    <input type="file" id="uploadFiles" multiple style="display:none;" />
+    <button style="float:right" id="btnUpload">Upload</button>
+    <table id="searchResultsTbl" style="margin-top:20px; display:none;">
+        <thead>
+            <tr>
+                <th>File Search Result</th>.
+                <th>Size</th>
+            </tr>
+        </thead>
+        <tbody id="searchResultsBody">
+        </tbody>
+    </table>
+    <script>
+        $ = id => document.getElementById(id), $el = (el, attrs = {}) => (e => (Object.entries(attrs).forEach(([k, v]) => k.startsWith('data-') ? e.setAttribute(k, v) : e[k] = v), e))(document.createElement(el));
+        $$ = sel => document.querySelectorAll(sel);
+        HTMLElement.prototype.on = function (e, fn) { this.addEventListener(e, fn) };
+        HTMLElement.prototype.appendChildren = function (...n) { return n.forEach(x => this.appendChild(x)), this };
+
+        const browseFolder = (baseUrl, path = "") => {
+            const url = path ? `${baseUrl}?path=${encodeURIComponent(path)}` : baseUrl;
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const browseResult = $('browseResult');
+                    browseResult.innerHTML = "";
+                    $('pathBox').value = path || "/";
+                    const btnUp = $('btnUp');
+                    btnUp.disabled = !path;
+                    btnUp.onclick = () => {
+                        if (!path) return;
+                        const parentPath = path.includes("/") ? path.substring(0, path.lastIndexOf("/")) : "";
+                        browseFolder(baseUrl, parentPath);
+                    };
+
+                    data.folders.forEach(folder => {
+                        const row = $el('tr');
+                        const selectCell = $el('td');
+                        const checkbox = $el('input', { type: 'checkbox', value: folder.name, 'data-type': 'folder' });
+                        selectCell.appendChild(checkbox);
+                        const tdName = $el('td', { textContent: '📁' + folder.name, style: 'cursor: pointer' });
+                        tdName.on('click', () => {
+                            const newPath = path ? `${path}/${folder.name}` : folder.name;
+                            browseFolder(baseUrl, newPath);
+                        });
+                        row.appendChildren(
+                            selectCell,
+                            tdName,
+                            $el('td', { textContent: folder.dateModified }),
+                            $el('td'),
+                            $el('td', { textContent: folder.fileCount })
+                        );
+                        browseResult.appendChild(row);
+                    });
+
+                    data.files.forEach(file => {
+                        const row = $el('tr');
+                        const selectCell = $el('td');
+                        const checkbox = $el('input', { type: 'checkbox', value: file.name, 'data-type': 'file' });
+                        selectCell.appendChild(checkbox);
+                        const fileCell = $el('td', { textContent: '📄' + file.name, style: 'cursor: pointer' });
+                        fileCell.on('click', () => {
+                            const fullPath = path ? `${path}/${file.name}` : file.name;
+                            window.open(`/${fullPath}`, '_blank');
+                        });
+                        row.appendChildren(
+                            selectCell,
+                            fileCell,
+                            $el('td', { textContent: file.dateModified }),
+                            $el('td', { textContent: file.size }),
+                            $el('td')
+                        );
+                        browseResult.appendChild(row);
+                    });
+                });
+        };
+        browseFolder('https://localhost:7146/test/browse');
+
+        const searchFiles = query => {
+            if (!query) return;
+            fetch(`/test/search?query=${encodeURIComponent(query)}`)
+                .then(r => r.json())
+                .then(files => {
+                    const tbody = $('searchResultsBody');
+                    tbody.innerHTML = "";
+                    files.forEach(f => {
+                        const row = $el('tr');
+                        row.appendChildren(
+                            $el('td', { textContent: f.Path }),
+                            $el('td', { textContent: f.Size })
+                        );
+                        tbody.appendChild(row);
+                    });
+                    $('searchResultsTbl').style.display = files.length ? 'table' : 'none';
+                });
+        };
+
+        $('searchBox').on('keypress', e => {
+            if (e.key === 'Enter') searchFiles(e.target.value);
+        });
+
+        const uploadFilesInput = $('uploadFiles'), btnUpload = $('btnUpload');
+        btnUpload.on('click', () => uploadFilesInput.click());
+        uploadFilesInput.on('change', () => {
+            const files = Array.from(uploadFilesInput.files);
+            if (!files.length) return;
+            const formData = new FormData();
+            files.forEach(f => formData.append('files', f));
+            let currentPath = $('pathBox').value;
+            if (currentPath === '/') currentPath = ''; // normalize root
+            formData.append('path', currentPath);
+            fetch('/test/upload', {
+                method: 'POST',
+                body: formData
+            })
+                .then(r => r.json())
+                .then(result => {
+                    browseFolder('https://localhost:7146/test/browse', currentPath);
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Upload failed');
+                })
+                .finally(() => uploadFilesInput.value = '');
+        });
+
+        $('btnDelete').on('click', () => {
+            const checkboxes = $$('input[type="checkbox"]:checked');
+            if (!checkboxes.length) return alert('No files or folders selected');
+            if (!confirm(`Delete ${checkboxes.length} item(s)?`)) return;
+            const items = Array.from(checkboxes).map(cb => ({
+                name: cb.value,
+                type: cb.getAttribute('data-type')
+            }));
+            const currentPath = $('pathBox').value === '/' ? '' : $('pathBox').value;
+            fetch('https://localhost:7146/test/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: currentPath, items })
+            })
+                .then(r => r.json())
+                .then(result => {
+                    browseFolder('https://localhost:7146/test/browse', currentPath);
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Delete failed');
+                });
+        });
+
+        $('btnNewFolder').on('click', () => {
+            let folderName = prompt("Enter new folder name:");
+            if (!folderName) return;
+            let currentPath = $('pathBox').value === '/' ? '' : $('pathBox').value;
+            fetch('/test/newfolder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: currentPath, folderName })
+            })
+                .then(r => r.json())
+                .then(result => {
+                    browseFolder('https://localhost:7146/test/browse', currentPath);
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Failed to create folder');
+                });
+        });
+    </script>
+</body>
+</html>
