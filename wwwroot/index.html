@@ -36,9 +36,16 @@
         <tbody id="browseResult">
         </tbody>
     </table>
-    <button id="btnDelete">Delete Selected</button>
-    <input type="file" id="uploadFiles" multiple style="display:none;" />
-    <span id="browseSummary" /><button style="float:right" id="btnUpload">Upload</button>
+    <table style="width:100%">
+        <tr>
+            <td style="width:1%"><button id="btnDelete">Delete&nbsp;Selected</button></td>
+            <td style="text-align:center" id="browseSummary"></td>
+            <td style="text-align:right;width:1%">
+                <input type="file" id="uploadFiles" multiple style="display:none;" />
+                <button id="btnUpload">Upload</button>
+            </td>
+        </tr>
+    </table>
     <table id="searchResultsTbl" style="margin-top:20px; display:none;">
         <thead>
             <tr>
