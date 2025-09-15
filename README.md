@@ -2,6 +2,8 @@
 
 Simple file explorer application that allows users to browse, search, upload, delete, and create new folders on a local server. The application uses .NET endpoints for file operations.
 
+![screenshot](screenshot.png)
+
 #### Features:
 - Browse files and folders on the server
 - Search for files using wildcards (* and ?)
