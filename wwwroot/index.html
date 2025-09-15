@@ -38,7 +38,7 @@
     </table>
     <button id="btnDelete">Delete Selected</button>
     <input type="file" id="uploadFiles" multiple style="display:none;" />
-    <button style="float:right" id="btnUpload">Upload</button>
+    <span id="browseSummary" /><button style="float:right" id="btnUpload">Upload</button>
     <table id="searchResultsTbl" style="margin-top:20px; display:none;">
         <thead>
             <tr>
@@ -110,6 +110,7 @@
                         );
                         browseResult.appendChild(row);
                     });
+                    $('browseSummary').textContent = `Folder count: ${data.folders.length}, File count: ${data.files.length}`;
                 });
         };
         browseFolder('https://localhost:7146/test/browse');
