@@ -23,12 +23,12 @@ namespace TestProject.Controllers {
             var folderInfo = new DirectoryInfo(fullPath);
             var folders = folderInfo.GetDirectories().Select(d => new {
                 Name = d.Name,
-                DateModified = d.LastWriteTime.ToString("M/d/yyyy h:mm"),
+                DateModified = d.LastWriteTime.ToString("M/d/yyyy h:mm tt"),
                 FileCount = d.GetFiles().Length
             });
             var files = folderInfo.GetFiles().Select(f => new {
                 Name = f.Name,
-                DateModified = f.LastWriteTime.ToString("M/d/yyyy h:mm"),
+                DateModified = f.LastWriteTime.ToString("M/d/yyyy h:mm tt"),
                 Size = f.Length
             });
 
