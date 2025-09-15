@@ -124,7 +124,10 @@
         browseFolder('https://localhost:7146/test/browse');
 
         const searchFiles = query => {
-            if (!query) return;
+            if (!query) {
+                $('searchResultsTbl').style.display = 'none';
+                return;
+            }
             fetch(`/test/search?query=${encodeURIComponent(query)}`)
                 .then(r => r.json())
                 .then(files => {
