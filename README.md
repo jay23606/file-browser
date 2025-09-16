@@ -1,6 +1,9 @@
 ﻿### File Browser
 
-File browser application that allows users to browse, search, upload, delete, and create new folders on a local server. The application uses .NET endpoints for file operations.
+A lightweight, interactive web-based file browser that allows users to manage server-side files and folders directly from the browser. 
+The interface supports standard file operations like browsing, uploading, renaming, deleting, copying, and moving files or folders. 
+Users can also search for files using wildcard patterns, and the entire browser is contained within a dialog element for easy integration 
+into larger applications. Double-clicking enables inline renaming of files and folders, and all actions are reflected in real time.
 
 ![screenshot](screenshot.png)
 
