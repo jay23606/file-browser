@@ -11,6 +11,7 @@ File browser application that allows users to browse, search, upload, delete, an
 - Delete/Copy/Move files/folders from the server
 - Create new folders on the server
 - Moved browser into dialog element
+- Rename files/folders using double-click 
 
 #### Endpoints:
 1. `/browse`: Endpoint for browsing files and folders on the server.
