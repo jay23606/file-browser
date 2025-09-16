@@ -6,13 +6,17 @@ All actions are real-time, double-click enables inline renaming.
 ![screenshot](screenshot.png)
 
 #### Features:
+ 
 - Browse files and folders on the server
 - Search for files using wildcards
 - Upload files to the server
 - Delete/Copy/Move files/folders from the server
 - Create new folders on the server
+- Download files/folders as a ZIP
 - Moved browser into dialog element
-- Rename files/folders using double-click 
+- Rename files/folders using double-click
+- Navigate up one folder / go to parent directory
+
 
 #### Endpoints:
 1. `/browse`: Endpoint for browsing files/folders on the server.
