@@ -14,12 +14,15 @@ File browser application that allows users to browse, search, upload, delete, an
 - Rename files/folders using double-click 
 
 #### Endpoints:
-1. `/browse`: Endpoint for browsing files and folders on the server.
+1. `/browse`: Endpoint for browsing files/folders on the server.
 2. `/search`: Endpoint for searching files with wildcard characters.
 3. `/upload`: Endpoint for uploading files to the server.
-4. `/delete`: Endpoint for deleting files from the server.
+4. `/delete`: Endpoint for deleting files/folders from the server.
 5. `/newFolder`: Endpoint for creating new folders on the server.
-
+6. `/move`: Endpoint for moving files/folders on the server.
+7. `/copy`: Endpoint for coping files/folders on the server.
+8. `/rename`: Endpoint for renaming file/folders on the server.
+1. 
 #### Technologies Used:
 - .NET framework for backend endpoints
 - HTML, CSS, JavaScript for frontend interface
