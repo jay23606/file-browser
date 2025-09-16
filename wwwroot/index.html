@@ -63,7 +63,17 @@
         HTMLElement.prototype.on = function (e, fn) { this.addEventListener(e, fn) };
         HTMLElement.prototype.appendChildren = function (...n) { return n.forEach(x => this.appendChild(x)), this };
 
-        const browseFolder = (baseUrl, path = "") => {
+        const baseUrl = '/test/browse';
+
+        const updateUrl = (path, search) => {
+            const params = new URLSearchParams();
+            if (path) params.set('path', path);
+            if (search) params.set('search', search);
+            const newUrl = `${window.location.pathname}?${params.toString()}`;
+            window.history.pushState({ path, search }, '', newUrl);
+        };
+
+        const browseFolder = (path = "") => {
             const url = path ? `${baseUrl}?path=${encodeURIComponent(path)}` : baseUrl;
             fetch(url)
                 .then(response => response.json())
@@ -76,7 +86,7 @@
                     btnUp.onclick = () => {
                         if (!path) return;
                         const parentPath = path.includes("/") ? path.substring(0, path.lastIndexOf("/")) : "";
-                        browseFolder(baseUrl, parentPath);
+                        browseFolder(parentPath);
                     };
 
                     data.folders.forEach(folder => {
@@ -87,7 +97,7 @@
                         const tdName = $el('td', { textContent: '📁' + folder.name, style: 'cursor: pointer' });
                         tdName.on('click', () => {
                             const newPath = path ? `${path}/${folder.name}` : folder.name;
-                            browseFolder(baseUrl, newPath);
+                            browseFolder(newPath);
                         });
                         row.appendChildren(
                             selectCell,
@@ -119,13 +129,14 @@
                         browseResult.appendChild(row);
                     });
                     $('browseSummary').textContent = `Folder count: ${data.folders.length}, File count: ${data.files.length}`;
+                    updateUrl(path, $('searchBox').value);
                 });
         };
-        browseFolder('https://localhost:7146/test/browse');
 
         const searchFiles = query => {
             if (!query) {
                 $('searchResultsTbl').style.display = 'none';
+                updateUrl($('pathBox').value === '/' ? '' : $('pathBox').value, '');
                 return;
             }
             fetch(`/test/search?query=${encodeURIComponent(query)}`)
@@ -142,6 +153,7 @@
                         tbody.appendChild(row);
                     });
                     $('searchResultsTbl').style.display = files.length ? 'table' : 'none';
+                    updateUrl($('pathBox').value === '/' ? '' : $('pathBox').value, query);
                 });
         };
 
@@ -157,7 +169,7 @@
             const formData = new FormData();
             files.forEach(f => formData.append('files', f));
             let currentPath = $('pathBox').value;
-            if (currentPath === '/') currentPath = ''; // normalize root
+            if (currentPath === '/') currentPath = ''; 
             formData.append('path', currentPath);
             fetch('/test/upload', {
                 method: 'POST',
@@ -165,7 +177,7 @@
             })
                 .then(r => r.json())
                 .then(result => {
-                    browseFolder('https://localhost:7146/test/browse', currentPath);
+                    browseFolder(currentPath);
                 })
                 .catch(err => {
                     console.error(err);
@@ -183,14 +195,14 @@
                 type: cb.getAttribute('data-type')
             }));
             const currentPath = $('pathBox').value === '/' ? '' : $('pathBox').value;
-            fetch('https://localhost:7146/test/delete', {
+            fetch('/test/delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ path: currentPath, items })
             })
                 .then(r => r.json())
                 .then(result => {
-                    browseFolder('https://localhost:7146/test/browse', currentPath);
+                    browseFolder(currentPath);
                 })
                 .catch(err => {
                     console.error(err);
@@ -209,13 +221,36 @@
             })
                 .then(r => r.json())
                 .then(result => {
-                    browseFolder('https://localhost:7146/test/browse', currentPath);
+                    browseFolder(currentPath);
                 })
                 .catch(err => {
                     console.error(err);
                     alert('Failed to create folder');
                 });
         });
+
+        window.onpopstate = e => {
+            const params = new URLSearchParams(window.location.search);
+            const path = params.get('path') || '';
+            const search = params.get('search') || '';
+
+            $('searchBox').value = search;
+            if (search) searchFiles(search);
+            else {
+                $('searchResultsTbl').style.display = 'none';
+                browseFolder(path);
+            }
+        };
+
+        const params = new URLSearchParams(window.location.search);
+        const initialPath = params.get('path') || '';
+        const initialSearch = params.get('search') || '';
+        if (initialSearch) {
+            $('searchBox').value = initialSearch;
+            searchFiles(initialSearch);
+        } else browseFolder(initialPath);
+        
     </script>
+
 </body>
 </html>
