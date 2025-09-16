@@ -264,5 +264,48 @@ namespace TestProject.Controllers {
                 CopyDirectory(folder, destFolder);
             }
         }
+
+        public class RenameRequest
+        {
+            public string Path { get; set; } = "";
+            public string OldName { get; set; }
+            public string NewName { get; set; }
+            public string Type { get; set; } // "file" or "folder"
+        }
+
+        [HttpPost("rename")]
+        public IActionResult Rename([FromBody] RenameRequest request)
+        {
+            try
+            {
+                var targetDir = Path.Combine(_rootDirectory, request.Path ?? "");
+                string sourcePath = Path.Combine(targetDir, request.OldName);
+                string destPath = Path.Combine(targetDir, request.NewName);
+
+                if (!sourcePath.StartsWith(_rootDirectory) || !destPath.StartsWith(_rootDirectory))
+                    return BadRequest(new { error = "Invalid path" });
+
+                if (request.Type == "file")
+                {
+                    if (!System.IO.File.Exists(sourcePath))
+                        return BadRequest(new { error = "File does not exist" });
+                    System.IO.File.Move(sourcePath, destPath);
+                }
+                else if (request.Type == "folder")
+                {
+                    if (!Directory.Exists(sourcePath))
+                        return BadRequest(new { error = "Folder does not exist" });
+                    if (Directory.Exists(destPath)) return BadRequest(new { error = "Destination folder already exists" });
+                    Directory.Move(sourcePath, destPath);
+                }
+                else return BadRequest(new { error = "Unknown type" });
+
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
     }
 }
