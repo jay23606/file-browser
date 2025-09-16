@@ -48,9 +48,10 @@
         <table style="width:100%">
             <tr>
                 <td style="width:1%">
-                    <button id="btnDelete">Delete&nbsp;Selected</button>
+                    <button id="btnDelete">Delete</button>
                     <button onclick="moveOrCopyItems('copy', prompt('Copy to path:'))">Copy</button>
                     <button onclick="moveOrCopyItems('move', prompt('Move to path:'))">Move</button>
+                    <button id="downloadBtn">Download</button>
                 </td>
                 <td style="text-align:center" id="browseSummary"></td>
                 <td style="text-align:right;width:1%">
@@ -332,6 +333,37 @@
                     }
                 });
             }
+
+            //download selected items as zip
+            $('downloadBtn').on('click', () => {
+                const path = $('pathBox').value === '/' ? '' : $('pathBox').value;
+                const checkboxes = $$('#browseResult input[type="checkbox"]:checked');
+                if (!checkboxes.length) return alert('No items selected');
+
+                const items = Array.from(checkboxes).map(cb => ({
+                    name: cb.value,
+                    type: cb.getAttribute('data-type')
+                }));
+
+                fetch('/test/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items, path })
+                })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Failed to create zip');
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'download.zip';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    })
+                    .catch(err => alert(err.message));
+            });
 
             //restore state for back/forward 
             window.onpopstate = e => {
