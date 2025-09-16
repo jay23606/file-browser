@@ -71,6 +71,7 @@
         </table>
     </dialog>
         <script>
+            //helper functions
             $ = id => document.getElementById(id), $el = (el, attrs = {}) => (e => (Object.entries(attrs).forEach(([k, v]) => k.startsWith('data-') ? e.setAttribute(k, v) : e[k] = v), e))(document.createElement(el));
             $$ = sel => document.querySelectorAll(sel);
             HTMLElement.prototype.on = function (e, fn) { this.addEventListener(e, fn) };
@@ -78,6 +79,7 @@
 
             const baseUrl = '/test/browse';
 
+            //save history for forward/back
             const updateUrl = (path, search) => {
                 const params = new URLSearchParams();
                 if (path) params.set('path', path);
@@ -86,6 +88,7 @@
                 window.history.pushState({ path, search }, '', newUrl);
             };
 
+            //show files/folders in browseResult tbody
             const browseFolder = (path = "") => {
                 const url = path ? `${baseUrl}?path=${encodeURIComponent(path)}` : baseUrl;
                 fetch(url)
@@ -102,6 +105,7 @@
                             browseFolder(parentPath);
                         };
 
+                        //iterate folders, build tr
                         data.folders.forEach(folder => {
                             const row = $el('tr');
                             const selectCell = $el('td');
@@ -119,6 +123,7 @@
                             browseResult.appendChild(row);
                         });
 
+                        //iterate files, build tr
                         data.files.forEach(file => {
                             const row = $el('tr');
                             const selectCell = $el('td');
@@ -135,31 +140,30 @@
                             );
                             browseResult.appendChild(row);
                         });
+                        //show summary
                         $('browseSummary').textContent = `Folder count: ${data.folders.length}, File count: ${data.files.length}`;
                         updateUrl(path, $('searchBox').value);
                     });
             };
 
+            //add debounced click/dblclick event handlers for TD elements that have dataset.type set
             const browseResult = $('browseResult');
             browseResult.on('click', e => {
                 const td = e.target.closest('td');
-                if (!td || td.querySelector('input')) return; 
+                if (!td || !td.dataset.type || td.querySelector('input')) return;
                 const tr = td.parentElement;
                 const type = td.dataset.type;
                 const name = td.textContent.slice(2).trim();
                 const path = $('pathBox').value === '/' ? '' : $('pathBox').value;
-
-                // debounce for single-click
                 clearTimeout(td.clickTimer);
                 td.clickTimer = setTimeout(() => {
                     if (type === 'folder') browseFolder(path ? `${path}/${name}` : name);
                     else window.open(`/${path ? `${path}/` : ''}${name}`, '_blank');
                 }, 300);
             });
-
             browseResult.on('dblclick', e => {
                 const td = e.target.closest('td');
-                if (!td) return;
+                if (!td || !td.dataset.type) return;
                 clearTimeout(td.clickTimer);
                 const type = td.dataset.type; 
                 const name = td.textContent.slice(2).trim();
@@ -167,6 +171,7 @@
                 startRename(td, name, type, path);
             });
 
+            //show files from search in separate table
             const searchFiles = query => {
                 if (!query) {
                     $('searchResultsTbl').style.display = 'none';
@@ -190,11 +195,11 @@
                         updateUrl($('pathBox').value === '/' ? '' : $('pathBox').value, query);
                     });
             };
-
             $('searchBox').on('keypress', e => {
                 if (e.key === 'Enter') searchFiles(e.target.value);
             });
 
+            //upload files from file input to path in pathBox input
             const uploadFilesInput = $('uploadFiles'), btnUpload = $('btnUpload');
             btnUpload.on('click', () => uploadFilesInput.click());
             uploadFilesInput.on('change', () => {
@@ -220,6 +225,7 @@
                     .finally(() => uploadFilesInput.value = '');
             });
 
+            //pass checked checkboxes to delete endpoint for deletion if confirmed
             $('btnDelete').on('click', () => {
                 const checkboxes = $$('#browseResult input[type="checkbox"]:checked');
                 if (!checkboxes.length) return alert('No files or folders selected');
@@ -244,6 +250,7 @@
                     });
             });
 
+            //enable adding folder to current path in pathBox
             $('btnNewFolder').on('click', () => {
                 let folderName = prompt("Enter new folder name:");
                 if (!folderName) return;
@@ -263,6 +270,7 @@
                     });
             });
 
+            //enable move/copy from source in pathBox to destination in prompt
             const moveOrCopyItems = (action, destinationPath) => {
                 const checkboxes = $$('#browseResult input[type="checkbox"]:checked');
                 if (!checkboxes.length) return alert('No items selected');
@@ -287,7 +295,9 @@
                     .then(() => browseFolder(sourcePath));
             }
 
-            function startRename(td, oldName, type, currentPath) {
+            //called on dblclick to allow renaming of files/folders
+            //replaces td content with an input box and restores it
+            const startRename = (td, oldName, type, currentPath) => {
                 td.querySelector('input')?.remove();
                 td.textContent = '';
                 const input = $el('input', { type: 'text', value: oldName, style: 'width:90%' });
@@ -323,6 +333,7 @@
                 });
             }
 
+            //restore state for back/forward 
             window.onpopstate = e => {
                 const params = new URLSearchParams(window.location.search);
                 const path = params.get('path') || '';
@@ -335,7 +346,6 @@
                     browseFolder(path);
                 }
             };
-
             const params = new URLSearchParams(window.location.search);
             const initialPath = params.get('path') || '';
             const initialSearch = params.get('search') || '';
@@ -344,6 +354,7 @@
                 searchFiles(initialSearch);
             } else browseFolder(initialPath);
 
+            //event handlers for dialog
             $('openBrowserBtn').on('click', () => $('fileBrowserDialog').showModal());
             $('closeDialog').on('click', () => $('fileBrowserDialog').close())
         </script>
