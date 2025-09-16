@@ -22,7 +22,7 @@ File browser application that allows users to browse, search, upload, delete, an
 6. `/move`: Endpoint for moving files/folders on the server.
 7. `/copy`: Endpoint for coping files/folders on the server.
 8. `/rename`: Endpoint for renaming file/folders on the server.
-1. 
+
 #### Technologies Used:
 - .NET framework for backend endpoints
 - HTML, CSS, JavaScript for frontend interface
