@@ -8,8 +8,9 @@ File browser application that allows users to browse, search, upload, delete, an
 - Browse files and folders on the server
 - Search for files using wildcards
 - Upload files to the server
-- Delete files from the server
+- Delete/Copy/Move files/folders from the server
 - Create new folders on the server
+- Moved browser into dialog element
 
 #### Endpoints:
 1. `/browse`: Endpoint for browsing files and folders on the server.
