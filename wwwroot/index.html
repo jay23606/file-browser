@@ -108,10 +108,7 @@
                             const checkbox = $el('input', { type: 'checkbox', value: folder.name, 'data-type': 'folder' });
                             selectCell.appendChild(checkbox);
                             const tdName = $el('td', { textContent: '📁' + folder.name, style: 'cursor: pointer' });
-                            tdName.on('click', () => {
-                                const newPath = path ? `${path}/${folder.name}` : folder.name;
-                                browseFolder(newPath);
-                            });
+                            tdName.dataset.type = 'folder';
                             row.appendChildren(
                                 selectCell,
                                 tdName,
@@ -128,10 +125,7 @@
                             const checkbox = $el('input', { type: 'checkbox', value: file.name, 'data-type': 'file' });
                             selectCell.appendChild(checkbox);
                             const fileCell = $el('td', { textContent: '📄' + file.name, style: 'cursor: pointer' });
-                            fileCell.on('click', () => {
-                                const fullPath = path ? `${path}/${file.name}` : file.name;
-                                window.open(`/${fullPath}`, '_blank');
-                            });
+                            fileCell.dataset.type = 'file';
                             row.appendChildren(
                                 selectCell,
                                 fileCell,
@@ -145,6 +139,33 @@
                         updateUrl(path, $('searchBox').value);
                     });
             };
+
+            const browseResult = $('browseResult');
+            browseResult.on('click', e => {
+                const td = e.target.closest('td');
+                if (!td || td.querySelector('input')) return; 
+                const tr = td.parentElement;
+                const type = td.dataset.type;
+                const name = td.textContent.slice(2).trim();
+                const path = $('pathBox').value === '/' ? '' : $('pathBox').value;
+
+                // debounce for single-click
+                clearTimeout(td.clickTimer);
+                td.clickTimer = setTimeout(() => {
+                    if (type === 'folder') browseFolder(path ? `${path}/${name}` : name);
+                    else window.open(`/${path ? `${path}/` : ''}${name}`, '_blank');
+                }, 300);
+            });
+
+            browseResult.on('dblclick', e => {
+                const td = e.target.closest('td');
+                if (!td) return;
+                clearTimeout(td.clickTimer);
+                const type = td.dataset.type; 
+                const name = td.textContent.slice(2).trim();
+                const path = $('pathBox').value === '/' ? '' : $('pathBox').value;
+                startRename(td, name, type, path);
+            });
 
             const searchFiles = query => {
                 if (!query) {
@@ -264,6 +285,42 @@
                 })
                     .then(r => r.json())
                     .then(() => browseFolder(sourcePath));
+            }
+
+            function startRename(td, oldName, type, currentPath) {
+                td.querySelector('input')?.remove();
+                td.textContent = '';
+                const input = $el('input', { type: 'text', value: oldName, style: 'width:90%' });
+                td.appendChild(input);
+                input.focus();
+                input.select();
+
+                const finish = newName => td.textContent = (type === 'folder' ? '📁' : '📄') + newName;
+
+                const renameOnServer = newName => {
+                    const path = currentPath === '/' ? '' : currentPath;
+                    fetch('/test/rename', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ path, oldName, newName, type })
+                    })
+                        .then(r => r.json())
+                        .then(res => res.error ? (alert(res.error), finish(oldName)) : finish(newName))
+                        .catch(err => (console.error(err), finish(oldName)));
+                };
+
+                input.on('blur', () => finish(oldName));
+                input.on('keydown', e => {
+                    if (e.key === 'Enter') {
+                        const newName = input.value.trim();
+                        if (!newName) return finish(oldName);
+                        renameOnServer(newName);
+                    } else if (e.key === 'Escape') {
+                        finish(oldName);
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
+                });
             }
 
             window.onpopstate = e => {
