@@ -21,17 +21,17 @@
         <table id="hdr">
             <tr>
                 <td style="width:10px">
-                    <button id="btnUp" style="margin-right:5px;">⬆️</button>
+                    <button id="btnUp" style="margin-right:5px;" title="Move up one directory">🔼</button>
                 </td>
                 <td>
                     <input id="pathBox" type="text" readonly style="width:100%;" />
                 </td>
                 <td style="width:50px">
-                    <input id="searchBox" type="text" placeholder="Search" />
+                    <input id="searchBox" type="text" placeholder="Search" title="Search for files" />
                 </td>
             </tr>
         </table>
-        <button style="float:right" id="btnNewFolder">New Folder</button>
+        <button style="float:right" id="btnNewFolder" title="Add new folder">New 📁</button>
         <table id="tbl">
             <thead>
                 <tr>
@@ -47,16 +47,16 @@
         </table>
         <table style="width:100%">
             <tr>
-                <td style="width:1%">
-                    <button id="btnDelete">Delete</button>
-                    <button onclick="moveOrCopyItems('copy', prompt('Copy to path:'))">Copy</button>
-                    <button onclick="moveOrCopyItems('move', prompt('Move to path:'))">Move</button>
-                    <button id="downloadBtn">Download</button>
+                <td style="width:150px">
+                    <button id="btnDelete" title="Delete files/folders">🗑️</button>
+                    <button onclick="moveOrCopyItems('copy', prompt('Copy to path:'))" title="Copy files/folders">📑</button>
+                    <button onclick="moveOrCopyItems('move', prompt('Move to path:'))" title="Move files/folders">🔀</button>
+                    <button id="downloadBtn" title="Download files/folders">⬇️</button>
                 </td>
                 <td style="text-align:center" id="browseSummary"></td>
                 <td style="text-align:right;width:1%">
                     <input type="file" id="uploadFiles" multiple style="display:none;" />
-                    <button id="btnUpload">Upload&nbsp;File(s)</button>
+                    <button id="btnUpload" title="Upload files">Upload⬆️</button>
                 </td>
             </tr>
         </table>
