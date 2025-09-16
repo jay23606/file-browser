@@ -1,19 +1,31 @@
 using Microsoft.AspNetCore.Mvc;
+using System.IO.Compression;
 using System.Text.Json;
 
-namespace TestProject.Controllers {
+namespace TestProject.Controllers
+{
+    /// <summary>
+    /// Provides file and folder management operations on the server, including browsing, searching, uploading,
+    /// renaming, moving, copying, deleting, creating folders, and downloading as ZIP.
+    /// </summary>
     [ApiController]
     [Route("[controller]")]
-    public class TestController : ControllerBase {
+    public class TestController : ControllerBase
+    {
 
-        private readonly ILogger<TestController> _logger;
-        private readonly string _rootDirectory;
+        readonly ILogger<TestController> _logger;
+        readonly string _rootDirectory;
 
-        public TestController(ILogger<TestController> logger, IWebHostEnvironment environment) {
+        public TestController(ILogger<TestController> logger, IWebHostEnvironment environment)
+        {
             _logger = logger;
             _rootDirectory = Path.Combine(environment.ContentRootPath, "wwwroot");
         }
 
+        /// <summary>
+        /// Browses the specified directory and returns folders and files.
+        /// </summary>
+        /// <param name="path">Relative path from root directory.</param>
         [HttpGet("browse")]
         public IActionResult BrowseDirectory(string path = "")
         {
@@ -21,12 +33,14 @@ namespace TestProject.Controllers {
             if (!Directory.Exists(fullPath)) return NotFound("Directory not found");
 
             var folderInfo = new DirectoryInfo(fullPath);
-            var folders = folderInfo.GetDirectories().Select(d => new {
+            var folders = folderInfo.GetDirectories().Select(d => new
+            {
                 Name = d.Name,
                 DateModified = d.LastWriteTime.ToString("M/d/yyyy h:mm tt"),
                 FileCount = d.GetFiles().Length
             });
-            var files = folderInfo.GetFiles().Select(f => new {
+            var files = folderInfo.GetFiles().Select(f => new
+            {
                 Name = f.Name,
                 DateModified = f.LastWriteTime.ToString("M/d/yyyy h:mm tt"),
                 Size = f.Length
@@ -41,6 +55,10 @@ namespace TestProject.Controllers {
             return Ok(result);
         }
 
+        /// <summary>
+        /// Searches for files matching the query, supports wildcards.
+        /// </summary>
+        /// <param name="query">Search query or pattern.</param>
         [HttpGet("search")]
         public IActionResult SearchFiles(string query)
         {
@@ -56,6 +74,11 @@ namespace TestProject.Controllers {
             return Ok(JsonSerializer.Serialize(files));
         }
 
+        /// <summary>
+        /// Uploads files to the specified path.
+        /// </summary>
+        /// <param name="files">Files to upload.</param>
+        /// <param name="path">Relative target path.</param>
         [HttpPost("upload")]
         public async Task<IActionResult> UploadFiles(List<IFormFile> files, [FromForm] string path = "")
         {
@@ -88,6 +111,9 @@ namespace TestProject.Controllers {
             public string Type { get; set; } // "file" or "folder"
         }
 
+        /// <summary>
+        /// Deletes specified files or folders.
+        /// </summary>
         [HttpPost("delete")]
         public IActionResult Delete([FromBody] DeleteRequest request)
         {
@@ -101,7 +127,7 @@ namespace TestProject.Controllers {
                     if (item.Type == "file" && System.IO.File.Exists(fullPath))
                         System.IO.File.Delete(fullPath);
                     else if (item.Type == "folder" && Directory.Exists(fullPath))
-                        Directory.Delete(fullPath, true); 
+                        Directory.Delete(fullPath, true);
                 }
                 catch (Exception ex)
                 {
@@ -118,6 +144,9 @@ namespace TestProject.Controllers {
             public string FolderName { get; set; } = "";
         }
 
+        /// <summary>
+        /// Creates a new folder at the specified path.
+        /// </summary>
         [HttpPost("newfolder")]
         public IActionResult CreateFolder([FromBody] NewFolderRequest request)
         {
@@ -152,14 +181,15 @@ namespace TestProject.Controllers {
             public string Type { get; set; } // "file" or "folder"
         }
 
-
-
+        /// <summary>
+        /// Moves selected files or folders from source to destination.
+        /// </summary>
         [HttpPost("move")]
         public IActionResult Move([FromBody] MoveCopyRequest request)
         {
             try
             {
-                
+
                 string sourceDir = string.IsNullOrWhiteSpace(request.SourcePath) || request.SourcePath == "/"
                     ? _rootDirectory
                     : Path.GetFullPath(Path.Combine(_rootDirectory,
@@ -203,6 +233,9 @@ namespace TestProject.Controllers {
             }
         }
 
+        /// <summary>
+        /// Copies selected files or folders from source to destination.
+        /// </summary>
         [HttpPost("copy")]
         public IActionResult Copy([FromBody] MoveCopyRequest request)
         {
@@ -237,7 +270,7 @@ namespace TestProject.Controllers {
                     if (item.Type == "file" && System.IO.File.Exists(sourcePath))
                         System.IO.File.Copy(sourcePath, destPath, overwrite: true);
                     else if (item.Type == "folder" && Directory.Exists(sourcePath))
-                        CopyDirectory(sourcePath, destPath); 
+                        CopyDirectory(sourcePath, destPath);
                 }
 
                 return Ok(new { success = true });
@@ -248,7 +281,7 @@ namespace TestProject.Controllers {
             }
         }
 
-        private void CopyDirectory(string sourceDir, string destDir)
+        void CopyDirectory(string sourceDir, string destDir)
         {
             Directory.CreateDirectory(destDir);
 
@@ -273,6 +306,9 @@ namespace TestProject.Controllers {
             public string Type { get; set; } // "file" or "folder"
         }
 
+        /// <summary>
+        /// Renames a file or folder at the specified path.
+        /// </summary>
         [HttpPost("rename")]
         public IActionResult Rename([FromBody] RenameRequest request)
         {
@@ -305,6 +341,40 @@ namespace TestProject.Controllers {
             catch (Exception ex)
             {
                 return BadRequest(new { error = ex.Message });
+            }
+        }
+        public class DownloadRequest
+        {
+            public List<ItemDto> Items { get; set; }
+            public string Path { get; set; }
+        }
+
+        /// <summary>
+        /// Downloads selected files or folders as a ZIP archive.
+        /// </summary>
+        [HttpPost("download")]
+        public IActionResult Download([FromBody] DownloadRequest request)
+        {
+            using var memoryStream = new MemoryStream();
+            using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+            {
+                foreach (var item in request.Items)
+                {
+                    var fullPath = Path.Combine(_rootDirectory, request.Path ?? "", item.Name);
+                    if (item.Type == "folder" && Directory.Exists(fullPath)) AddFolderToZip(archive, fullPath, item.Name);
+                    else if (System.IO.File.Exists(fullPath)) archive.CreateEntryFromFile(fullPath, item.Name);
+                }
+            }
+            memoryStream.Position = 0;
+            return File(memoryStream.ToArray(), "application/zip", "download.zip");
+        }
+
+        void AddFolderToZip(ZipArchive archive, string sourceFolder, string entryName)
+        {
+            foreach (var file in Directory.GetFiles(sourceFolder, "*", SearchOption.AllDirectories))
+            {
+                var relativePath = Path.GetRelativePath(sourceFolder, file);
+                archive.CreateEntryFromFile(file, Path.Combine(entryName, relativePath));
             }
         }
     }

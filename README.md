@@ -1,9 +1,7 @@
 ﻿### File Browser
 
-A lightweight, interactive web-based file browser that allows users to manage server-side files and folders directly from the browser. 
-The interface supports standard file operations like browsing, uploading, renaming, deleting, copying, and moving files or folders. 
-Users can also search for files using wildcard patterns, and the entire browser is contained within a dialog element for easy integration 
-into larger applications. Double-clicking enables inline renaming of files and folders, and all actions are reflected in real time.
+A lightweight, interactive web file browser in a dialog, supporting browsing, uploading, renaming, deleting, copying, moving, downloading and wildcard search. 
+All actions are real-time, double-click enables inline renaming.
 
 ![screenshot](screenshot.png)
 
@@ -25,6 +23,7 @@ into larger applications. Double-clicking enables inline renaming of files and f
 6. `/move`: Endpoint for moving files/folders on the server.
 7. `/copy`: Endpoint for coping files/folders on the server.
 8. `/rename`: Endpoint for renaming file/folders on the server.
+8. `/download`: Endpoint for downloding files/folders from server as zip.
 
 #### Technologies Used:
 - .NET framework for backend endpoints
