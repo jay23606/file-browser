@@ -1,6 +1,6 @@
-﻿### Simple File Explorer
+﻿### File Browser
 
-Simple file explorer application that allows users to browse, search, upload, delete, and create new folders on a local server. The application uses .NET endpoints for file operations.
+File browser application that allows users to browse, search, upload, delete, and create new folders on a local server. The application uses .NET endpoints for file operations.
 
 ![screenshot](screenshot.png)
 
