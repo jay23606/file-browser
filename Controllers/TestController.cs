@@ -101,13 +101,11 @@ namespace TestProject.Controllers {
                     if (item.Type == "file" && System.IO.File.Exists(fullPath))
                         System.IO.File.Delete(fullPath);
                     else if (item.Type == "folder" && Directory.Exists(fullPath))
-                        Directory.Delete(fullPath, true); // recursive
+                        Directory.Delete(fullPath, true); 
                 }
                 catch (Exception ex)
                 {
-                    // Log the error with the item name and type
-                    _logger.LogError(ex, "Failed to delete {ItemType} '{ItemName}' in path '{TargetDir}'",
-                        item.Type, item.Name, targetDir);
+                    return BadRequest(new { error = ex.Message });
                 }
             }
 
@@ -137,11 +135,134 @@ namespace TestProject.Controllers {
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create folder '{FolderName}' in path '{Path}'",
-                    request.FolderName, request.Path);
-                return StatusCode(500, new { message = "Error creating folder" });
+                return BadRequest(new { error = ex.Message });
             }
         }
 
+        public class MoveCopyRequest
+        {
+            public string SourcePath { get; set; }     // current folder path from pathBox
+            public string DestinationPath { get; set; } // target folder path
+            public List<ItemDto> Items { get; set; }    // files/folders selected
+        }
+
+        public class ItemDto
+        {
+            public string Name { get; set; }
+            public string Type { get; set; } // "file" or "folder"
+        }
+
+
+
+        [HttpPost("move")]
+        public IActionResult Move([FromBody] MoveCopyRequest request)
+        {
+            try
+            {
+                
+                string sourceDir = string.IsNullOrWhiteSpace(request.SourcePath) || request.SourcePath == "/"
+                    ? _rootDirectory
+                    : Path.GetFullPath(Path.Combine(_rootDirectory,
+                        request.SourcePath.Replace('\\', Path.DirectorySeparatorChar)
+                                          .Replace('/', Path.DirectorySeparatorChar)
+                                          .TrimStart('.', Path.DirectorySeparatorChar)));
+
+                string destDir = string.IsNullOrWhiteSpace(request.DestinationPath) || request.DestinationPath == "/"
+                    ? _rootDirectory
+                    : Path.GetFullPath(Path.Combine(_rootDirectory,
+                        request.DestinationPath.Replace('\\', Path.DirectorySeparatorChar)
+                                               .Replace('/', Path.DirectorySeparatorChar)
+                                               .TrimStart('.', Path.DirectorySeparatorChar)));
+
+                // prevent escaping outside root
+                if (!sourceDir.StartsWith(_rootDirectory, StringComparison.OrdinalIgnoreCase) ||
+                    !destDir.StartsWith(_rootDirectory, StringComparison.OrdinalIgnoreCase))
+                    return BadRequest(new { error = "Invalid path traversal attempt" });
+
+                if (!Directory.Exists(destDir))
+                    Directory.CreateDirectory(destDir);
+
+                foreach (var item in request.Items)
+                {
+                    var sourcePath = Path.Combine(sourceDir, item.Name);
+                    var destPath = Path.Combine(destDir, item.Name);
+
+                    if (item.Type == "file" && System.IO.File.Exists(sourcePath))
+                        System.IO.File.Move(sourcePath, destPath, overwrite: true);
+                    else if (item.Type == "folder" && Directory.Exists(sourcePath))
+                    {
+                        if (Directory.Exists(destPath)) Directory.Delete(destPath, true);
+                        Directory.Move(sourcePath, destPath);
+                    }
+                }
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpPost("copy")]
+        public IActionResult Copy([FromBody] MoveCopyRequest request)
+        {
+            try
+            {
+                string sourceDir = string.IsNullOrWhiteSpace(request.SourcePath) || request.SourcePath == "/"
+                    ? _rootDirectory
+                    : Path.GetFullPath(Path.Combine(_rootDirectory,
+                        request.SourcePath.Replace('\\', Path.DirectorySeparatorChar)
+                                          .Replace('/', Path.DirectorySeparatorChar)
+                                          .TrimStart('.', Path.DirectorySeparatorChar)));
+
+                string destDir = string.IsNullOrWhiteSpace(request.DestinationPath) || request.DestinationPath == "/"
+                    ? _rootDirectory
+                    : Path.GetFullPath(Path.Combine(_rootDirectory,
+                        request.DestinationPath.Replace('\\', Path.DirectorySeparatorChar)
+                                               .Replace('/', Path.DirectorySeparatorChar)
+                                               .TrimStart('.', Path.DirectorySeparatorChar)));
+
+                if (!sourceDir.StartsWith(_rootDirectory, StringComparison.OrdinalIgnoreCase) ||
+                    !destDir.StartsWith(_rootDirectory, StringComparison.OrdinalIgnoreCase))
+                    return BadRequest(new { error = "Invalid path traversal attempt" });
+
+                if (!Directory.Exists(destDir))
+                    Directory.CreateDirectory(destDir);
+
+                foreach (var item in request.Items)
+                {
+                    var sourcePath = Path.Combine(sourceDir, item.Name);
+                    var destPath = Path.Combine(destDir, item.Name);
+
+                    if (item.Type == "file" && System.IO.File.Exists(sourcePath))
+                        System.IO.File.Copy(sourcePath, destPath, overwrite: true);
+                    else if (item.Type == "folder" && Directory.Exists(sourcePath))
+                        CopyDirectory(sourcePath, destPath); 
+                }
+
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        private void CopyDirectory(string sourceDir, string destDir)
+        {
+            Directory.CreateDirectory(destDir);
+
+            foreach (var file in Directory.GetFiles(sourceDir))
+            {
+                var destFile = Path.Combine(destDir, Path.GetFileName(file));
+                System.IO.File.Copy(file, destFile, overwrite: true);
+            }
+
+            foreach (var folder in Directory.GetDirectories(sourceDir))
+            {
+                var destFolder = Path.Combine(destDir, Path.GetFileName(folder));
+                CopyDirectory(folder, destFolder);
+            }
+        }
     }
 }
